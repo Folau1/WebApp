@@ -1,0 +1,34 @@
+{
+  "name": "telegram-webapp-shop",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "server",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\" \"npm run dev:admin\" \"npm run dev:bot\"",
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w @shop/web",
+    "dev:admin": "npm run dev -w @shop/admin",
+    "dev:bot": "npm run dev -w @shop/bot",
+    "build": "npm run build:server && npm run build:web && npm run build:admin && npm run build:bot",
+    "build:server": "npm run build -w server",
+    "build:web": "npm run build -w @shop/web",
+    "build:admin": "npm run build -w @shop/admin",
+    "build:bot": "npm run build -w @shop/bot",
+    "prisma:generate": "npm run prisma:generate -w server",
+    "prisma:migrate": "npm run prisma:migrate -w server",
+    "prisma:seed": "npm run prisma:seed -w server",
+    "prisma:studio": "npm run prisma:studio -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

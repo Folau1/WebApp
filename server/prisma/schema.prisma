@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  tgId      String   @unique
+  firstName String?
+  lastName  String?
+  username  String?
+  role      Role     @default(USER)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Category {
+  id         String               @id @default(cuid())
+  name       String
+  slug       String               @unique
+  parentId   String?
+  parent     Category?            @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children   Category[]           @relation("CategoryToCategory")
+  products   Product[]
+  discounts  DiscountOnCategory[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+}
+
+model Product {
+  id          String              @id @default(cuid())
+  title       String
+  slug        String              @unique
+  description String?
+  price       Int // в копейках
+  compareAt   Int? // старая цена
+  categoryId  String
+  category    Category            @relation(fields: [categoryId], references: [id])
+  media       Media[]
+  discounts   DiscountOnProduct[]
+  orderItems  OrderItem[]
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([categoryId])
+  @@index([slug])
+}
+
+model Media {
+  id        String    @id @default(cuid())
+  productId String
+  kind      MediaKind // IMAGE | VIDEO
+  url       String
+  order     Int       @default(0)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([productId])
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+model Discount {
+  id         String               @id @default(cuid())
+  code       String?              @unique
+  type       DiscountType // PERCENT | FIXED
+  value      Int // процент или сумма в копейках
+  startsAt   DateTime?
+  endsAt     DateTime?
+  active     Boolean              @default(true)
+  products   DiscountOnProduct[]
+  categories DiscountOnCategory[]
+  orders     Order[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@index([code])
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+model DiscountOnProduct {
+  productId  String
+  discountId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+
+  @@id([productId, discountId])
+}
+
+model DiscountOnCategory {
+  categoryId String
+  discountId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, discountId])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  number        Int         @default(autoincrement())
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  totalAmount   Int // в копейках
+  discountTotal Int         @default(0)
+  discountId    String?
+  discount      Discount?   @relation(fields: [discountId], references: [id])
+  status        OrderStatus @default(PENDING)
+  ykPaymentId   String? // YooKassa payment id
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([ykPaymentId])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  title     String
+  unitPrice Int
+  qty       Int
+  subtotal  Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELED
+  FULFILLED
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
