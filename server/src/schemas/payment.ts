@@ -21,3 +21,4 @@ export const yookassaWebhookSchema = z.object({
 
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type YookassaWebhookInput = z.infer<typeof yookassaWebhookSchema>;
+

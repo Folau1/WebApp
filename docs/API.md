@@ -450,3 +450,9 @@ Allowed origins configured via `CORS_ORIGIN` environment variable.
 ### YooKassa Webhook Security
 
 Webhook requests are verified using HMAC signature in `X-Yookassa-Signature` header.
+
+
+
+
+
+

@@ -1,16 +1,37 @@
 import { z } from 'zod';
 
-export const createProductSchema = z.object({
+const baseProductSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens'),
   description: z.string().optional(),
   price: z.number().int().positive('Price must be positive'),
   compareAt: z.number().int().positive().optional(),
+  stock: z.number().int().min(0, 'Stock must be non-negative').default(0),
   categoryId: z.string().cuid(),
   active: z.boolean().default(true)
 });
 
-export const updateProductSchema = createProductSchema.partial();
+export const createProductSchema = baseProductSchema.refine((data) => {
+  // Если есть старая цена, она должна быть больше текущей
+  if (data.compareAt && data.compareAt <= data.price) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Old price must be greater than current price",
+  path: ["compareAt"]
+});
+
+export const updateProductSchema = baseProductSchema.partial().refine((data) => {
+  // Если есть старая цена, она должна быть больше текущей
+  if (data.compareAt && data.price && data.compareAt <= data.price) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Old price must be greater than current price",
+  path: ["compareAt"]
+});
 
 export const productQuerySchema = z.object({
   search: z.string().optional(),
@@ -33,3 +54,4 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ProductQueryInput = z.infer<typeof productQuerySchema>;
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
+

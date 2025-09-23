@@ -28,6 +28,7 @@ export interface Product {
   description: string | null;
   price: number;
   compareAt: number | null;
+  stock: number;
   categoryId: string;
   category: Category;
   media: Media[];
@@ -120,3 +121,9 @@ export interface PresignUrlResponse {
   publicUrl: string;
   key: string;
 }
+
+
+
+
+
+

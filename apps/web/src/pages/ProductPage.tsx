@@ -48,11 +48,13 @@ export default function ProductPage() {
   }, [slug, navigate]);
 
   const handleAddToCart = () => {
-    if (!product || isInCart) return;
+    if (!product || isInCart || product.stock === 0) return;
     
     addToCart(product);
     hapticFeedback('notification', 'success');
   };
+  
+  const isOutOfStock = product?.stock === 0;
 
   const handleGoToCart = () => {
     hapticFeedback('impact', 'light');
@@ -68,71 +70,100 @@ export default function ProductPage() {
   }
 
   return (
-    <div className="pb-20">
+    <div className="min-h-screen bg-gray-900 pb-24">
       {/* Media */}
-      <MediaViewer media={product.media} />
-
-      {/* Content */}
-      <div className="px-4 py-4">
-        <h1 className="text-xl font-semibold text-telegram-text mb-2">
-          {product.title}
-        </h1>
-
-        {/* Price */}
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-2xl font-bold text-telegram-text">
-            {formatPrice(product.finalPrice)}
-          </span>
-          
-          {product.compareAt && product.compareAt > product.finalPrice && (
-            <>
-              <span className="text-lg text-telegram-hint line-through">
-                {formatPrice(product.compareAt)}
-              </span>
-              {product.discount && (
-                <span className="badge badge-discount">
-                  -{product.discount.percentage}%
-                </span>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Category */}
-        <div className="mb-4">
-          <span className="text-sm text-telegram-hint">Категория: </span>
-          <span className="text-sm text-telegram-link">{product.category.name}</span>
-        </div>
-
-        {/* Description */}
-        {product.description && (
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-telegram-text mb-2">Описание</h2>
-            <p className="text-telegram-text whitespace-pre-wrap">{product.description}</p>
-          </div>
-        )}
+      <div className="bg-gray-900 px-4 pt-4">
+        <MediaViewer media={product.media} disableModal={true} />
       </div>
 
-      {/* Fixed bottom button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-telegram-bg border-t border-telegram-hint/20">
-        {isInCart ? (
-          <button
-            onClick={handleGoToCart}
-            className="w-full btn-secondary flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            Перейти в корзину
-          </button>
-        ) : (
-          <button
-            onClick={handleAddToCart}
-            className="w-full btn-primary"
-          >
-            Добавить в корзину
-          </button>
-        )}
+      {/* Content */}
+      <div className="bg-gray-900 relative z-10">
+        <div className="px-6 py-6">
+          <h1 className="text-2xl font-bold text-white mb-4 leading-tight">
+            {product.title}
+          </h1>
+
+          {/* Price */}
+          <div className="mb-4">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl font-bold text-blue-400">
+                {formatPrice(product.finalPrice)}
+              </span>
+              
+              {product.compareAt && product.compareAt > product.finalPrice && (
+                <span className="bg-green-500 text-white px-2 py-1 rounded text-sm font-bold">
+                  -{Math.round(((product.compareAt - product.finalPrice) / product.compareAt) * 100)}%
+                </span>
+              )}
+            </div>
+            
+            {product.compareAt && product.compareAt > product.finalPrice && (
+              <span className="text-lg text-gray-400 line-through">
+                {formatPrice(product.compareAt)}
+              </span>
+            )}
+          </div>
+
+          {/* Stock status */}
+          <div className="mb-6">
+            {isOutOfStock ? (
+              <div className="flex items-center gap-2 text-red-400">
+                <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                <span className="font-semibold">Нет в наличии</span>
+              </div>
+            ) : product.stock <= 5 ? (
+              <div className="flex items-center gap-2 text-orange-400">
+                <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                <span className="font-semibold">Осталось: {product.stock} шт.</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-green-400">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="font-semibold">В наличии ({product.stock} шт.)</span>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          {product.description && (
+            <div className="mb-8">
+              <div className="bg-gray-800 rounded-xl p-4">
+                <p className="text-white leading-relaxed text-base">
+                  {product.description}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Add to cart button */}
+      <div className="fixed bottom-16 left-0 right-0 bg-gray-900 border-t border-gray-700 p-4">
+        <div className="max-w-sm mx-auto">
+          {isInCart ? (
+            <button
+              onClick={handleGoToCart}
+              className="w-full bg-green-500 text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:bg-green-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Перейти в корзину
+            </button>
+          ) : (
+            <button
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              className={`w-full py-4 rounded-2xl font-bold text-lg shadow-lg transition-colors ${
+                isOutOfStock 
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
+              }`}
+            >
+              {isOutOfStock ? 'Нет в наличии' : 'Добавить в корзину'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -6,3 +6,9 @@ export default function ProtectedRoute() {
 
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 }
+
+
+
+
+
+

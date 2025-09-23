@@ -7,9 +7,14 @@ import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrderSuccessPage from './pages/OrderSuccessPage';
+import MyOrdersPage from './pages/MyOrdersPage';
 import OrdersPage from './pages/OrdersPage';
 import OrderPage from './pages/OrderPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import DiscountsPage from './pages/DiscountsPage';
+import ProfilePage from './pages/ProfilePage';
 import LoadingScreen from './components/LoadingScreen';
 
 function App() {
@@ -48,9 +53,14 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="product/:slug" element={<ProductPage />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="checkout" element={<CheckoutPage />} />
+        <Route path="order-success/:orderId" element={<OrderSuccessPage />} />
+        <Route path="my-orders" element={<MyOrdersPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<OrderPage />} />
         <Route path="payment/success" element={<PaymentSuccessPage />} />
+        <Route path="discounts" element={<DiscountsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
@@ -58,3 +68,4 @@ function App() {
 }
 
 export default App;
+

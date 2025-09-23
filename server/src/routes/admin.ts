@@ -36,6 +36,29 @@ adminRouter.get('/products', async (req, res, next) => {
   }
 });
 
+// Get single product by ID
+adminRouter.get('/products/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        media: { orderBy: { order: 'asc' } }
+      }
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json({ product });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.post('/products', async (req, res, next) => {
   try {
     const data = createProductSchema.parse(req.body);
@@ -70,6 +93,32 @@ adminRouter.put('/products/:id', async (req, res, next) => {
     });
 
     logger.info({ productId: product.id }, 'Product updated');
+    res.json({ product });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH endpoint for updating only stock
+adminRouter.patch('/products/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { stock } = req.body;
+
+    if (typeof stock !== 'number' || stock < 0) {
+      return res.status(400).json({ error: 'Stock must be a non-negative number' });
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: { stock },
+      include: {
+        category: true,
+        media: { orderBy: { order: 'asc' } }
+      }
+    });
+
+    logger.info({ productId: product.id, stock }, 'Product stock updated');
     res.json({ product });
   } catch (error) {
     next(error);
@@ -190,6 +239,28 @@ adminRouter.delete('/media/:id', async (req, res, next) => {
 
     logger.info({ mediaId: id }, 'Media deleted');
     res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH endpoint for updating media order
+adminRouter.patch('/media/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { order } = req.body;
+
+    if (typeof order !== 'number' || order < 0) {
+      return res.status(400).json({ error: 'Order must be a non-negative number' });
+    }
+
+    const media = await prisma.media.update({
+      where: { id },
+      data: { order }
+    });
+
+    logger.info({ mediaId: media.id, order }, 'Media order updated');
+    res.json({ media });
   } catch (error) {
     next(error);
   }
@@ -353,7 +424,15 @@ adminRouter.get('/orders', async (req, res, next) => {
           user: true,
           items: {
             include: {
-              product: true
+              product: {
+                include: {
+                  media: {
+                    where: { kind: 'IMAGE' },
+                    take: 1,
+                    orderBy: { order: 'asc' }
+                  }
+                }
+              }
             }
           },
           discount: true
@@ -363,8 +442,14 @@ adminRouter.get('/orders', async (req, res, next) => {
       prisma.order.count({ where })
     ]);
 
+    // Parse address JSON for each order
+    const ordersWithParsedAddress = orders.map(order => ({
+      ...order,
+      address: order.address ? JSON.parse(order.address) : null
+    }));
+
     res.json({
-      orders,
+      orders: ordersWithParsedAddress,
       pagination: {
         page,
         limit,
@@ -377,12 +462,12 @@ adminRouter.get('/orders', async (req, res, next) => {
   }
 });
 
-adminRouter.put('/orders/:id/status', async (req, res, next) => {
+adminRouter.patch('/orders/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['PENDING', 'PAID', 'CANCELED', 'FULFILLED'].includes(status)) {
+    if (status && !['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(status)) {
       throw new AppError(400, 'Invalid status');
     }
 
@@ -436,3 +521,4 @@ adminRouter.get('/stats', async (req, res, next) => {
     next(error);
   }
 });
+

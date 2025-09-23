@@ -179,3 +179,4 @@ catalogRouter.get('/products/:slug', optionalTelegramAuth, async (req, res, next
     next(error);
   }
 });
+

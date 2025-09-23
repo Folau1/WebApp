@@ -46,3 +46,9 @@ echo ""
 echo "Default admin credentials:"
 echo "  Email: admin@example.com"
 echo "  Password: admin123"
+
+
+
+
+
+

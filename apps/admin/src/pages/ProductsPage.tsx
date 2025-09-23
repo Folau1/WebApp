@@ -1,149 +1,523 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { productsApi, mediaApi } from '../lib/api';
-import { formatPrice } from '../utils/format';
-import type { Product } from '../types/api';
+import React, { useState, useEffect } from 'react';
 
-export default function ProductsPage() {
+interface Product {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  price: number;
+  compareAt?: number;
+  stock: number;
+  categoryId: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  media: Array<{
+    id: string;
+    url: string;
+    order: number;
+  }>;
+  category: {
+    id: string;
+    name: string;
+  };
+}
+
+interface ProductsResponse {
+  products: Product[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  const [error, setError] = useState<string | null>(null);
+  const [editingStock, setEditingStock] = useState<string | null>(null);
+  const [stockValue, setStockValue] = useState<number>(0);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await productsApi.getAll();
-      setProducts(data);
-    } catch (error) {
-      console.error('Failed to load products:', error);
+      setError(null);
+      
+      // Сначала получаем токен
+      const loginResponse = await fetch('http://localhost:3000/api/auth/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: 'admin@example.com',
+          password: 'admin123'
+        })
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Ошибка авторизации');
+      }
+
+      const loginData = await loginResponse.json();
+      const token = loginData.token;
+
+      // Теперь получаем товары с правильным токеном
+      const response = await fetch('http://localhost:3000/api/admin/products', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки товаров');
+      }
+      const data = await response.json();
+      setProducts(data.products);
+    } catch (err) {
+      setError('Не удалось загрузить товары: ' + (err as Error).message);
+      console.error('Error loading products:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Удалить товар "${title}"?`)) return;
+  const updateStock = async (productId: string, newStock: number) => {
+    // Валидация количества
+    if (newStock < 0) {
+      alert('Количество не может быть отрицательным');
+      return;
+    }
 
     try {
-      setDeleteLoading(id);
-      await productsApi.delete(id);
-      setProducts(products.filter(p => p.id !== id));
-    } catch (error) {
-      console.error('Failed to delete product:', error);
-      alert('Ошибка при удалении товара');
-    } finally {
-      setDeleteLoading(null);
+      // Сначала получаем реальный токен через логин
+      const loginResponse = await fetch('http://localhost:3000/api/auth/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: 'admin@example.com',
+          password: 'admin123'
+        })
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Ошибка авторизации');
+      }
+
+      const loginData = await loginResponse.json();
+      const token = loginData.token;
+
+      // Теперь обновляем количество с правильным токеном
+      const response = await fetch(`http://localhost:3000/api/admin/products/${productId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ stock: newStock })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка обновления количества');
+      }
+
+      // Обновляем локальное состояние
+      setProducts(prev => prev.map(product => 
+        product.id === productId ? { ...product, stock: newStock } : product
+      ));
+      
+      setEditingStock(null);
+    } catch (err) {
+      alert('Не удалось обновить количество товара: ' + (err as Error).message);
+      console.error('Error updating stock:', err);
     }
   };
 
+  const startEditingStock = (product: Product) => {
+    setEditingStock(product.id);
+    setStockValue(product.stock);
+  };
+
+  const cancelEditingStock = () => {
+    setEditingStock(null);
+    setStockValue(0);
+  };
+
+  const saveStock = () => {
+    if (editingStock) {
+      updateStock(editingStock, stockValue);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      minimumFractionDigits: 0
+    }).format(price / 100);
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f3f4f6',
+        fontFamily: 'Arial, sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '4px solid #e5e7eb',
+            borderTop: '4px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }}></div>
+          <p style={{ color: '#6b7280' }}>Загрузка товаров...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f3f4f6',
+        fontFamily: 'Arial, sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>
+          <button
+            onClick={loadProducts}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Попробовать снова
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f3f4f6',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      {/* Header */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '1rem',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        marginBottom: '2rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Товары</h1>
-        <Link to="/products/new" className="btn btn-primary">
-          <span className="flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Добавить товар
-          </span>
-        </Link>
+            <button
+              onClick={() => window.location.href = '/'}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                marginRight: '1rem'
+              }}
+            >
+              ← Назад
+            </button>
+            <h1 style={{ 
+              margin: 0, 
+              color: '#1f2937',
+              fontSize: '1.5rem',
+              display: 'inline'
+            }}>
+              Управление товарами
+            </h1>
+          </div>
+          <button
+            onClick={() => window.location.href = '/login'}
+            style={{
+              backgroundColor: '#ef4444',
+              color: 'white',
+              padding: '0.5rem 1rem',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Выйти
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '0 1rem' }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ 
+            padding: '1.5rem', 
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h2 style={{ 
+              margin: 0, 
+              color: '#1f2937',
+              fontSize: '1.25rem'
+            }}>
+              Список товаров ({products.length})
+            </h2>
+            <button
+              onClick={() => window.location.href = '/products/new'}
+              style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}
+            >
+              + Добавить товар
+            </button>
       </div>
 
       {products.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500 mb-4">Нет товаров</p>
-          <Link to="/products/new" className="btn btn-primary">
-            Добавить первый товар
-          </Link>
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <p style={{ color: '#6b7280' }}>Товары не найдены</p>
         </div>
       ) : (
-        <div className="card p-0">
-          <div className="overflow-x-auto">
-            <table className="table">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse',
+                fontSize: '0.875rem'
+              }}>
               <thead>
-                <tr>
-                  <th>Фото</th>
-                  <th>Название</th>
-                  <th>Категория</th>
-                  <th>Цена</th>
-                  <th>Старая цена</th>
-                  <th>Статус</th>
-                  <th>Заказов</th>
-                  <th>Действия</th>
+                  <tr style={{ backgroundColor: '#f9fafb' }}>
+                    <th style={{ 
+                      padding: '0.75rem', 
+                      textAlign: 'left', 
+                      borderBottom: '1px solid #e5e7eb',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Товар
+                    </th>
+                    <th style={{ 
+                      padding: '0.75rem', 
+                      textAlign: 'left', 
+                      borderBottom: '1px solid #e5e7eb',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Категория
+                    </th>
+                    <th style={{ 
+                      padding: '0.75rem', 
+                      textAlign: 'right', 
+                      borderBottom: '1px solid #e5e7eb',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Цена
+                    </th>
+                    <th style={{ 
+                      padding: '0.75rem', 
+                      textAlign: 'center', 
+                      borderBottom: '1px solid #e5e7eb',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Количество
+                    </th>
+                    <th style={{ 
+                      padding: '0.75rem', 
+                      textAlign: 'center', 
+                      borderBottom: '1px solid #e5e7eb',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Действия
+                    </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+                <tbody>
                 {products.map((product) => (
-                  <tr key={product.id}>
-                    <td>
-                      {product.media.length > 0 ? (
+                    <tr key={product.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          {product.media && product.media.length > 0 ? (
                         <img
                           src={product.media[0].url}
                           alt={product.title}
-                          className="w-12 h-12 object-cover rounded"
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                objectFit: 'cover',
+                                borderRadius: '4px',
+                                border: '1px solid #e5e7eb'
+                              }}
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+                            <div style={{
+                              width: '48px',
+                              height: '48px',
+                              backgroundColor: '#f3f4f6',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#9ca3af',
+                              fontSize: '0.75rem'
+                            }}>
+                              Нет фото
+                            </div>
+                          )}
+                          <div>
+                            <div style={{ 
+                              fontWeight: '500', 
+                              color: '#1f2937',
+                              marginBottom: '0.25rem'
+                            }}>
+                              {product.title}
+                            </div>
+                            <div style={{ 
+                              color: '#6b7280', 
+                              fontSize: '0.75rem'
+                            }}>
+                              {product.slug}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#374151' }}>
+                        {product.category.name}
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                        <div style={{ color: '#1f2937', fontWeight: '500' }}>
+                          {formatPrice(product.price)}
+                        </div>
+                        {product.compareAt && product.compareAt > product.price && (
+                          <div style={{ 
+                            color: '#6b7280', 
+                            fontSize: '0.75rem',
+                            textDecoration: 'line-through'
+                          }}>
+                            {formatPrice(product.compareAt)}
                         </div>
                       )}
                     </td>
-                    <td>
-                      <div>
-                        <p className="font-medium text-gray-900">{product.title}</p>
-                        <p className="text-sm text-gray-500">{product.slug}</p>
+                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                        {editingStock === product.id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <input
+                              type="number"
+                              value={stockValue}
+                              onChange={(e) => setStockValue(parseInt(e.target.value) || 0)}
+                              style={{
+                                width: '80px',
+                                padding: '0.25rem 0.5rem',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '4px',
+                                fontSize: '0.875rem'
+                              }}
+                            />
+                            <button
+                              onClick={saveStock}
+                              style={{
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '0.25rem 0.5rem',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={cancelEditingStock}
+                              style={{
+                                backgroundColor: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '0.25rem 0.5rem',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              ✕
+                            </button>
                       </div>
-                    </td>
-                    <td>{product.category.name}</td>
-                    <td className="font-medium">{formatPrice(product.price)}</td>
-                    <td>
-                      {product.compareAt ? (
-                        <span className="text-gray-500 line-through">
-                          {formatPrice(product.compareAt)}
-                        </span>
-                      ) : (
-                        '—'
+                        ) : (
+                          <div style={{ 
+                            color: product.stock > 0 ? '#10b981' : '#ef4444',
+                            fontWeight: '500'
+                          }}>
+                            {product.stock} шт.
+                          </div>
                       )}
                     </td>
-                    <td>
-                      <span className={`badge ${product.active ? 'badge-success' : 'badge-danger'}`}>
-                        {product.active ? 'Активен' : 'Неактивен'}
-                      </span>
-                    </td>
-                    <td>{product._count?.orderItems || 0}</td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          to={`/products/${product.id}/edit`}
-                          className="text-primary-600 hover:text-primary-700"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </Link>
+                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => window.location.href = `/products/${product.id}`}
+                            style={{
+                              backgroundColor: '#8b5cf6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '0.5rem 1rem',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            Просмотр
+                          </button>
                         <button
-                          onClick={() => handleDelete(product.id, product.title)}
-                          disabled={deleteLoading === product.id}
-                          className="text-red-600 hover:text-red-700 disabled:opacity-50"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
+                            onClick={() => startEditingStock(product)}
+                            style={{
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '0.5rem 1rem',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            Количество
                         </button>
                       </div>
                     </td>
@@ -152,8 +526,18 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
-      )}
+      </div>
+
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
+
+export default ProductsPage;

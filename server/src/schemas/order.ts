@@ -7,7 +7,15 @@ export const orderItemSchema = z.object({
 
 export const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, 'Order must have at least one item'),
-  discountCode: z.string().optional()
+  discountCode: z.string().optional(),
+  address: z.object({
+    city: z.string().min(1, 'City is required'),
+    index: z.string().min(1, 'Index is required'),
+    street: z.string().min(1, 'Street is required'),
+    house: z.string().min(1, 'House is required'),
+    apartment: z.string().optional(),
+    note: z.string().optional()
+  }).optional()
 });
 
 export const orderQuerySchema = z.object({
@@ -19,3 +27,4 @@ export const orderQuerySchema = z.object({
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type OrderQueryInput = z.infer<typeof orderQuerySchema>;
+

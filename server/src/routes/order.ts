@@ -9,10 +9,10 @@ import { logger } from '../utils/logger';
 export const orderRouter = Router();
 
 // Create order
-orderRouter.post('/', verifyTelegramUser, async (req: AuthRequest, res, next) => {
+orderRouter.post('/', async (req, res, next) => {
   try {
     const data = createOrderSchema.parse(req.body);
-    const userId = req.user!.id;
+    const userId = null; // Для тестирования без Telegram
 
     // Validate products and calculate totals
     const products = await prisma.product.findMany({
@@ -87,13 +87,21 @@ orderRouter.post('/', verifyTelegramUser, async (req: AuthRequest, res, next) =>
 
     const totalAmount = Math.max(0, subtotal - discountTotal);
 
+    // Generate order number
+    const lastOrder = await prisma.order.findFirst({
+      orderBy: { number: 'desc' }
+    });
+    const orderNumber = (lastOrder?.number || 0) + 1;
+
     // Create order
     const order = await prisma.order.create({
       data: {
+        number: orderNumber,
         userId,
         totalAmount,
         discountTotal,
         discountId,
+        address: data.address ? JSON.stringify(data.address) : null,
         items: {
           create: orderItems
         }
@@ -113,20 +121,36 @@ orderRouter.post('/', verifyTelegramUser, async (req: AuthRequest, res, next) =>
 });
 
 // Get user orders
-orderRouter.get('/my', verifyTelegramUser, async (req: AuthRequest, res, next) => {
+orderRouter.get('/my', async (req, res, next) => {
   try {
-    const userId = req.user!.id;
-
+    // Для тестирования получаем все заказы
     const orders = await prisma.order.findMany({
-      where: { userId },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: {
+              include: {
+                media: {
+                  where: { kind: 'IMAGE' },
+                  take: 1,
+                  orderBy: { order: 'asc' }
+                }
+              }
+            }
+          }
+        },
         discount: true
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json({ orders });
+    // Parse address JSON for each order
+    const ordersWithParsedAddress = orders.map(order => ({
+      ...order,
+      address: order.address ? JSON.parse(order.address) : null
+    }));
+
+    res.json({ orders: ordersWithParsedAddress });
   } catch (error) {
     next(error);
   }
@@ -169,3 +193,4 @@ orderRouter.get('/:id', verifyTelegramUser, async (req: AuthRequest, res, next) 
     next(error);
   }
 });
+

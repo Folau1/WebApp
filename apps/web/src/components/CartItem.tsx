@@ -15,8 +15,13 @@ export default function CartItem({ item }: CartItemProps) {
   const thumbnail = product.media.find(m => m.kind === 'IMAGE')?.url || '/placeholder.png';
 
   const handleIncrease = () => {
-    updateCartItemQty(product.id, qty + 1);
-    hapticFeedback('impact', 'light');
+    const newQty = qty + 1;
+    if (newQty <= product.stock) {
+      updateCartItemQty(product.id, newQty);
+      hapticFeedback('impact', 'light');
+    } else {
+      hapticFeedback('notification', 'error');
+    }
   };
 
   const handleDecrease = () => {
@@ -46,6 +51,13 @@ export default function CartItem({ item }: CartItemProps) {
           {product.title}
         </h3>
         
+        {/* Stock indicator */}
+        {product.stock <= 5 && product.stock > 0 && (
+          <p className="text-xs text-orange-500 mb-1">
+            Осталось: {product.stock} шт.
+          </p>
+        )}
+        
         <div className="flex items-center justify-between">
           <div>
             <p className="text-telegram-text font-medium">
@@ -73,7 +85,12 @@ export default function CartItem({ item }: CartItemProps) {
             
             <button
               onClick={handleIncrease}
-              className="w-8 h-8 rounded-lg bg-telegram-secondary-bg flex items-center justify-center hover:opacity-80 transition-opacity"
+              disabled={qty >= product.stock}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-opacity ${
+                qty >= product.stock 
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                  : 'bg-telegram-secondary-bg hover:opacity-80'
+              }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -94,3 +111,9 @@ export default function CartItem({ item }: CartItemProps) {
     </div>
   );
 }
+
+
+
+
+
+

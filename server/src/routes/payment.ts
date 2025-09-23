@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { YooCheckout, ICreatePayment } from 'yookassa';
+const YooKassa = require('yookassa');
 import { prisma } from '../lib/prisma';
 import { AppError } from '../middleware/error';
 import { verifyTelegramUser, AuthRequest } from '../middleware/auth';
@@ -10,7 +10,7 @@ import { logger } from '../utils/logger';
 export const paymentRouter = Router();
 
 // Initialize YooKassa
-const yookassa = new YooCheckout({
+const yookassa = new YooKassa({
   shopId: process.env.YK_SHOP_ID!,
   secretKey: process.env.YK_SECRET_KEY!
 });
@@ -38,7 +38,7 @@ paymentRouter.post('/yookassa/create', verifyTelegramUser, async (req: AuthReque
     const idempotenceKey = crypto.randomUUID();
 
     // Create payment
-    const paymentData: ICreatePayment = {
+    const paymentData = {
       amount: {
         value: (order.totalAmount / 100).toFixed(2), // Convert from kopecks to rubles
         currency: 'RUB'

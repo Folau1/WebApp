@@ -81,3 +81,4 @@ export function calculateOrderDiscount(
 
   return Math.min(discount.value, subtotal);
 }
+

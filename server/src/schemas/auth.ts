@@ -11,3 +11,4 @@ export const telegramValidateSchema = z.object({
 
 export type AdminLoginInput = z.infer<typeof adminLoginSchema>;
 export type TelegramValidateInput = z.infer<typeof telegramValidateSchema>;
+

@@ -213,3 +213,9 @@ docker-compose exec postgres psql -U postgres -d tgshop
 - [ ] Файрвол настроен
 - [ ] Автообновление сертификатов
 - [ ] YooKassa webhook проверен
+
+
+
+
+
+

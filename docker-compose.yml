@@ -148,3 +148,9 @@ volumes:
 networks:
   default:
     name: tgshop-network
+
+
+
+
+
+

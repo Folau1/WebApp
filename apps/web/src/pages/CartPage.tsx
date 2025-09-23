@@ -30,13 +30,13 @@ export default function CartPage() {
   }, [navigate, showBackButton, hideBackButton, onBackButtonClick]);
 
   useEffect(() => {
-    if (cart.length > 0 && user) {
-      const cleanup = showMainButton('Оформить заказ', handleCheckout);
+    if (cart.length > 0) {
+      const cleanup = showMainButton('Перейти к оформлению', () => navigate('/checkout'));
       return cleanup;
     } else {
       hideMainButton();
     }
-  }, [cart, user, showMainButton, hideMainButton]);
+  }, [cart, showMainButton, hideMainButton, navigate]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) return;
@@ -202,13 +202,24 @@ export default function CartPage() {
         </div>
       </div>
 
-      {!user && (
-        <div className="mt-4 p-4 bg-telegram-secondary-bg rounded-lg">
-          <p className="text-sm text-telegram-hint text-center">
-            Для оформления заказа необходимо войти через Telegram
-          </p>
+      {/* Кнопка оформления заказа для браузера */}
+      {cart.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => navigate('/checkout')}
+            className="w-full btn-primary"
+          >
+            Перейти к оформлению
+          </button>
         </div>
       )}
+
     </div>
   );
 }
+
+
+
+
+
+

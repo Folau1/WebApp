@@ -39,13 +39,25 @@ export const useStore = create<AppState>()(
           const existingItem = state.cart.find(item => item.productId === product.id);
           
           if (existingItem) {
+            // Проверяем, не превышает ли новое количество доступный запас
+            const newQty = existingItem.qty + 1;
+            if (newQty > product.stock) {
+              // Не добавляем, если превышаем запас
+              return state;
+            }
+            
             return {
               cart: state.cart.map(item =>
                 item.productId === product.id
-                  ? { ...item, qty: item.qty + 1 }
+                  ? { ...item, qty: newQty }
                   : item
               )
             };
+          }
+          
+          // Проверяем, есть ли товар в наличии
+          if (product.stock <= 0) {
+            return state;
           }
           
           return {
@@ -70,13 +82,24 @@ export const useStore = create<AppState>()(
           return;
         }
 
-        set((state) => ({
-          cart: state.cart.map(item =>
-            item.productId === productId
-              ? { ...item, qty }
-              : item
-          )
-        }));
+        set((state) => {
+          const cartItem = state.cart.find(item => item.productId === productId);
+          if (!cartItem) return state;
+
+          // Проверяем, не превышает ли новое количество доступный запас
+          if (qty > cartItem.product.stock) {
+            // Ограничиваем количество доступным запасом
+            qty = cartItem.product.stock;
+          }
+
+          return {
+            cart: state.cart.map(item =>
+              item.productId === productId
+                ? { ...item, qty }
+                : item
+            )
+          };
+        });
       },
 
       clearCart: () => set({ cart: [], discount: null }),
@@ -122,3 +145,4 @@ export const useStore = create<AppState>()(
     }
   )
 );
+

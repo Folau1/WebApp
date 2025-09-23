@@ -59,6 +59,7 @@ async function main() {
       description: 'Стильная и вместительная сумка из натуральной кожи. Идеальна для повседневного использования.',
       price: 890000, // 8900 руб
       compareAt: 1200000, // 12000 руб
+      stock: 15,
       categoryId: bagsCategory.id,
       media: [
         { kind: 'IMAGE' as const, url: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3', order: 0 },
@@ -70,6 +71,7 @@ async function main() {
       slug: 'mini-crossbody-bag',
       description: 'Компактная сумка на длинном ремешке. Отлично подходит для вечерних выходов.',
       price: 450000, // 4500 руб
+      stock: 8,
       categoryId: bagsCategory.id,
       media: [
         { kind: 'IMAGE' as const, url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa', order: 0 }
@@ -80,6 +82,7 @@ async function main() {
       slug: 'aromatic-candle',
       description: 'Натуральная соевая свеча с ароматом лаванды. Время горения 40 часов.',
       price: 120000, // 1200 руб
+      stock: 25,
       categoryId: homeCategory.id,
       media: [
         { kind: 'IMAGE' as const, url: 'https://images.unsplash.com/photo-1602607222562-568be31c911b', order: 0 }
@@ -91,6 +94,7 @@ async function main() {
       description: 'Ручная работа. Минималистичный дизайн, идеально впишется в любой интерьер.',
       price: 250000, // 2500 руб
       compareAt: 350000, // 3500 руб
+      stock: 12,
       categoryId: homeCategory.id,
       media: [
         { kind: 'IMAGE' as const, url: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427', order: 0 }
@@ -101,6 +105,7 @@ async function main() {
       slug: 'gold-hoop-earrings',
       description: 'Классические серьги-кольца из золота 585 пробы. Диаметр 2 см.',
       price: 1500000, // 15000 руб
+      stock: 5,
       categoryId: jewelryCategory.id,
       media: [
         { kind: 'IMAGE' as const, url: 'https://images.unsplash.com/photo-1588444568894-7cc9e6209d7b', order: 0 }
@@ -111,6 +116,7 @@ async function main() {
       slug: 'natural-stone-bracelet',
       description: 'Браслет из натурального аметиста. Регулируемый размер.',
       price: 180000, // 1800 руб
+      stock: 20,
       categoryId: jewelryCategory.id,
       media: [
         { kind: 'IMAGE' as const, url: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401', order: 0 }
@@ -186,3 +192,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

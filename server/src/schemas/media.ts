@@ -20,3 +20,4 @@ export const updateMediaOrderSchema = z.object({
 export type PresignUrlInput = z.infer<typeof presignUrlSchema>;
 export type CreateMediaInput = z.infer<typeof createMediaSchema>;
 export type UpdateMediaOrderInput = z.infer<typeof updateMediaOrderSchema>;
+

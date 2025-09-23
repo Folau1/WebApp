@@ -60,3 +60,4 @@ minio-data/
 *.pid
 *.seed
 *.pid.lock
+

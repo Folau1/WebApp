@@ -101,3 +101,9 @@ jobs:
         context: ./apps/bot
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/tgshop-bot:latest
+
+
+
+
+
+

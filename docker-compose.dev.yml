@@ -32,12 +32,19 @@ services:
   createbuckets:
     image: minio/mc:latest
     depends_on:
-      - minio
+      minio:
+        condition: service_started
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      echo 'Waiting for MinIO to be ready...';
+      until /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin; do
+        echo 'MinIO is not ready yet, waiting...';
+        sleep 2;
+      done;
+      echo 'MinIO is ready, creating bucket...';
       /usr/bin/mc mb myminio/tgshop || true;
       /usr/bin/mc anonymous set public myminio/tgshop;
+      echo 'Bucket setup complete';
       exit 0;
       "
 
@@ -48,3 +55,4 @@ volumes:
 networks:
   default:
     name: tgshop-network-dev
+
