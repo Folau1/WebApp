@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { formatPrice } from '../utils/format';
+import api from '../lib/api';
 
 interface OrderItem {
   productId: string;
@@ -59,14 +60,9 @@ export default function MyOrdersPage() {
       setLoading(true);
       setError(null);
       
-      // Получаем заказы пользователя
-      const response = await fetch('http://localhost:3000/api/orders/my');
-      
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки заказов');
-      }
-      const data = await response.json();
-      setOrders(data.orders || []);
+      // Получаем заказы пользователя через Telegram API
+      const response = await api.get('/orders/my');
+      setOrders(response.data.orders || []);
     } catch (err) {
       setError('Не удалось загрузить заказы: ' + (err as Error).message);
       console.error('Error loading orders:', err);

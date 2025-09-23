@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { AppError } from './error';
 import { prisma } from '../lib/prisma';
+import { validateTelegramWebAppData, createUserDataFromTelegram } from '../utils/telegram';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -98,18 +99,12 @@ export const verifyTelegramUser = async (
       throw new AppError(401, 'No Telegram data provided');
     }
 
-    if (!verifyTelegramData(initData)) {
+    const validatedData = validateTelegramWebAppData(initData);
+    if (!validatedData) {
       throw new AppError(401, 'Invalid Telegram data');
     }
 
-    const urlParams = new URLSearchParams(initData);
-    const userStr = urlParams.get('user');
-    
-    if (!userStr) {
-      throw new AppError(401, 'No user data in init data');
-    }
-
-    const tgUser = JSON.parse(userStr);
+    const tgUser = validatedData.user;
     
     // Find or create user
     let user = await prisma.user.findUnique({
@@ -117,13 +112,16 @@ export const verifyTelegramUser = async (
     });
 
     if (!user) {
+      const userData = createUserDataFromTelegram(tgUser);
       user = await prisma.user.create({
-        data: {
-          tgId: tgUser.id.toString(),
-          firstName: tgUser.first_name,
-          lastName: tgUser.last_name,
-          username: tgUser.username
-        }
+        data: userData
+      });
+    } else {
+      // Update user data if needed
+      const userData = createUserDataFromTelegram(tgUser);
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: userData
       });
     }
 
@@ -151,23 +149,33 @@ export const optionalTelegramAuth = async (
   try {
     const initData = req.headers['x-telegram-init-data'] as string;
 
-    if (initData && verifyTelegramData(initData)) {
-      const urlParams = new URLSearchParams(initData);
-      const userStr = urlParams.get('user');
-      
-      if (userStr) {
-        const tgUser = JSON.parse(userStr);
+    if (initData) {
+      const validatedData = validateTelegramWebAppData(initData);
+      if (validatedData) {
+        const tgUser = validatedData.user;
         
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
           where: { tgId: tgUser.id.toString() }
         });
 
-        if (user) {
-          req.user = {
-            id: user.id,
-            role: user.role
-          };
+        if (!user) {
+          const userData = createUserDataFromTelegram(tgUser);
+          user = await prisma.user.create({
+            data: userData
+          });
+        } else {
+          // Update user data if needed
+          const userData = createUserDataFromTelegram(tgUser);
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: userData
+          });
         }
+
+        req.user = {
+          id: user.id,
+          role: user.role
+        };
       }
     }
   } catch (error) {
@@ -176,4 +184,5 @@ export const optionalTelegramAuth = async (
 
   next();
 };
+
 

@@ -12,6 +12,7 @@ import { discountRouter } from './routes/discount';
 import { orderRouter } from './routes/order';
 import { paymentRouter } from './routes/payment';
 import { adminRouter } from './routes/admin';
+import { userRouter } from './routes/user';
 import { prisma } from './lib/prisma';
 
 const app = express();
@@ -59,6 +60,7 @@ app.use('/api/discounts', discountRouter);
 app.use('/api/orders', orderRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/user', userRouter);
 
 // Error handling
 app.use(errorHandler);

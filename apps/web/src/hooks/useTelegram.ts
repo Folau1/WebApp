@@ -106,9 +106,21 @@ export const useTelegram = () => {
     tg.close();
   }, [tg]);
 
+  const getInitData = useCallback(() => {
+    if (!tg) return null;
+    return tg.initData;
+  }, [tg]);
+
+  const getInitDataUnsafe = useCallback(() => {
+    if (!tg) return null;
+    return tg.initDataUnsafe;
+  }, [tg]);
+
   return {
     tg,
     user: tg?.initDataUnsafe?.user,
+    initData: getInitData(),
+    initDataUnsafe: getInitDataUnsafe(),
     showBackButton,
     hideBackButton,
     onBackButtonClick,

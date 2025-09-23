@@ -9,10 +9,10 @@ import { logger } from '../utils/logger';
 export const orderRouter = Router();
 
 // Create order
-orderRouter.post('/', async (req, res, next) => {
+orderRouter.post('/', verifyTelegramUser, async (req: AuthRequest, res, next) => {
   try {
     const data = createOrderSchema.parse(req.body);
-    const userId = null; // Для тестирования без Telegram
+    const userId = req.user?.id || null;
 
     // Validate products and calculate totals
     const products = await prisma.product.findMany({
@@ -121,10 +121,14 @@ orderRouter.post('/', async (req, res, next) => {
 });
 
 // Get user orders
-orderRouter.get('/my', async (req, res, next) => {
+orderRouter.get('/my', verifyTelegramUser, async (req: AuthRequest, res, next) => {
   try {
-    // Для тестирования получаем все заказы
+    if (!req.user) {
+      throw new AppError(401, 'User not authenticated');
+    }
+
     const orders = await prisma.order.findMany({
+      where: { userId: req.user.id },
       include: {
         items: {
           include: {

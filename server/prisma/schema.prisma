@@ -13,6 +13,8 @@ model User {
   firstName String?
   lastName  String?
   username  String?
+  photoUrl  String?  // URL фотографии пользователя из Telegram
+  languageCode String? // Код языка пользователя
   role      String   @default("USER")
   orders    Order[]
   createdAt DateTime @default(now())

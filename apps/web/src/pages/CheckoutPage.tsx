@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import { useTelegram } from '../hooks/useTelegram';
 import { formatPrice } from '../utils/format';
+import api from '../lib/api';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -88,19 +89,8 @@ export default function CheckoutPage() {
         }
       };
 
-      const response = await fetch('http://localhost:3000/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Ошибка создания заказа');
-      }
-
-      const { order } = await response.json();
+      const response = await api.post('/orders', orderData);
+      const { order } = response.data;
       
       // Очищаем корзину
       clearCart();

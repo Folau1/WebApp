@@ -1,10 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
+import { useTelegram } from '../hooks/useTelegram';
+import api from '../lib/api';
+
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  language_code?: string;
+}
+
+interface UserProfile {
+  id: string;
+  tgId: string;
+  firstName: string;
+  lastName?: string;
+  username?: string;
+  photoUrl?: string;
+  languageCode?: string;
+  role: string;
+  createdAt: string;
+  _count: {
+    orders: number;
+  };
+}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user } = useStore();
+  const { user: tgUser, initData } = useTelegram();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressData, setAddressData] = useState({
     city: '',
@@ -14,6 +43,24 @@ export default function ProfilePage() {
     apartment: '',
     note: ''
   });
+
+  // Загружаем профиль пользователя
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        if (initData) {
+          const response = await api.get('/user/profile');
+          setUserProfile(response.data.user);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserProfile();
+  }, [initData]);
 
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,22 +91,52 @@ export default function ProfilePage() {
 
       {/* Контент */}
       <div className="max-w-sm mx-auto px-4 py-6">
-        <div className="text-center py-8">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gray-200 rounded-full flex items-center justify-center">
-            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-600">Загрузка профиля...</p>
           </div>
-          
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Пользователь' : 'Гость'}
-          </h2>
-          
-          <p className="text-gray-500 mb-8">
-            {user ? 'Добро пожаловать в ваш профиль!' : 'Добро пожаловать!'}
-          </p>
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+              {userProfile?.photoUrl ? (
+                <img 
+                  src={userProfile.photoUrl} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : tgUser?.photo_url ? (
+                <img 
+                  src={tgUser.photo_url} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              )}
+            </div>
+            
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              {userProfile?.firstName || tgUser?.first_name || 'Гость'}
+              {userProfile?.lastName && ` ${userProfile.lastName}`}
+              {!userProfile?.lastName && tgUser?.last_name && ` ${tgUser.last_name}`}
+            </h2>
+            
+            <p className="text-gray-500 mb-2">
+              {userProfile?.username || tgUser?.username ? `@${userProfile?.username || tgUser?.username}` : 'Добро пожаловать!'}
+            </p>
+            
+            {userProfile && (
+              <p className="text-sm text-gray-400 mb-8">
+                Заказов: {userProfile._count.orders}
+              </p>
+            )}
+          </div>
+        )}
 
-          <div className="space-y-4">
+        <div className="space-y-4">
             <div 
               className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() => navigate('/my-orders')}
