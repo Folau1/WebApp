@@ -1,0 +1,86 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run build
+      
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: ${{ secrets.SERVER_PORT }}
+        script: |
+          # Переходим в директорию проекта
+          cd /root/WebApp
+          
+          # Получаем последние изменения
+          git pull origin main
+          
+          # Устанавливаем зависимости
+          npm ci
+          
+          # Собираем приложение
+          npm run build
+          
+          # Перезапускаем сервисы
+          docker-compose -f docker-compose.dev.yml down
+          docker-compose -f docker-compose.dev.yml up -d
+          
+          # Ждем запуска базы данных
+          sleep 10
+          
+          # Применяем миграции базы данных
+          npm run prisma:migrate
+          
+          # Перезапускаем приложение
+          pm2 restart webapp-server || pm2 start ecosystem.config.js
+          
+          # Сохраняем конфигурацию PM2
+          pm2 save
+          
+    - name: Health check
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: ${{ secrets.SERVER_PORT }}
+        script: |
+          # Проверяем статус сервисов
+          echo "=== Docker Services ==="
+          docker-compose -f docker-compose.dev.yml ps
+          
+          echo "=== PM2 Status ==="
+          pm2 status
+          
+          echo "=== Nginx Status ==="
+          systemctl status nginx --no-pager
+          
+          # Проверяем доступность приложения
+          echo "=== Health Check ==="
+          curl -f http://localhost:3000/api/catalog/categories || echo "API not ready yet"
+          
+          echo "=== Deployment completed successfully! ==="

@@ -1,221 +1,202 @@
-# Деплой Telegram WebApp Shop
+# 🚀 Развертывание приложения
 
-## 🚀 Варианты деплоя
+## Настройка CI/CD с GitHub Actions
 
-### 1. VPS с Docker Compose
+### 1. Настройка GitHub Secrets
 
-#### Требования
-- VPS с минимум 2GB RAM
-- Docker и Docker Compose установлены
-- Домен настроен на IP сервера
-- SSL сертификат (Let's Encrypt)
+Перейдите в настройки репозитория: `Settings` → `Secrets and variables` → `Actions`
 
-#### Шаги
+Добавьте следующие секреты:
 
-1. **Клонируйте репозиторий на сервер:**
-```bash
-git clone https://github.com/yourusername/telegram-webapp-shop.git
-cd telegram-webapp-shop
-```
+| Secret Name | Value | Описание |
+|-------------|-------|----------|
+| `SERVER_HOST` | `109.248.11.230` | IP адрес сервера |
+| `SERVER_USER` | `root` | Пользователь для SSH |
+| `SERVER_PORT` | `22` | SSH порт |
+| `SERVER_SSH_KEY` | `-----BEGIN OPENSSH PRIVATE KEY-----...` | Приватный SSH ключ |
 
-2. **Настройте переменные окружения:**
-```bash
-cp env.example .env
-nano .env
-```
+### 2. Генерация SSH ключей
 
-3. **Обновите URLs в .env:**
-```
-WEBAPP_URL=https://shop.yourdomain.com
-YK_RETURN_URL=https://shop.yourdomain.com/payment/success
-YK_WEBHOOK_URL=https://api.yourdomain.com/api/payments/yookassa/webhook
-S3_PUBLIC_URL=https://s3.yourdomain.com/tgshop
-```
-
-4. **Настройте SSL с Certbot:**
-```bash
-sudo apt install certbot
-sudo certbot certonly --standalone -d shop.yourdomain.com -d api.yourdomain.com -d admin.yourdomain.com
-```
-
-5. **Обновите nginx конфигурацию для SSL**
-
-6. **Запустите приложение:**
-```bash
-docker-compose --profile production up -d
-```
-
-### 2. Render.com
-
-#### Backend API
-
-1. Создайте новый Web Service
-2. Подключите GitHub репозиторий
-3. Настройки:
-   - Build Command: `cd server && npm install && npm run build`
-   - Start Command: `cd server && npm start`
-   - Environment: Node
-   - План: минимум Starter ($7/месяц)
-
-4. Добавьте environment variables из .env
-
-5. Добавьте PostgreSQL database
-
-#### Frontend (WebApp и Admin)
-
-1. Создайте Static Site для каждого
-2. Build настройки:
-   - Build Command: `cd apps/web && npm install && npm run build`
-   - Publish Directory: `apps/web/dist`
-
-### 3. Fly.io
-
-1. **Установите Fly CLI:**
-```bash
-curl -L https://fly.io/install.sh | sh
-```
-
-2. **Создайте приложения:**
-```bash
-fly apps create tgshop-api
-fly apps create tgshop-web
-fly apps create tgshop-admin
-fly apps create tgshop-bot
-```
-
-3. **Добавьте PostgreSQL:**
-```bash
-fly postgres create --name tgshop-db
-fly postgres attach tgshop-db --app tgshop-api
-```
-
-4. **Деплой каждого сервиса:**
-```bash
-cd server && fly deploy --app tgshop-api
-cd ../apps/web && fly deploy --app tgshop-web
-cd ../admin && fly deploy --app tgshop-admin
-cd ../bot && fly deploy --app tgshop-bot
-```
-
-### 4. Kubernetes
-
-Смотрите [k8s манифесты](../k8s/) для деплоя в Kubernetes кластер.
-
-## 🔐 Настройка HTTPS
-
-### Nginx + Let's Encrypt
-
-1. **Установите Certbot:**
-```bash
-sudo apt install certbot python3-certbot-nginx
-```
-
-2. **Получите сертификаты:**
-```bash
-sudo certbot --nginx -d shop.yourdomain.com -d admin.yourdomain.com
-```
-
-3. **Автообновление:**
-```bash
-sudo certbot renew --dry-run
-```
-
-### Cloudflare
-
-1. Добавьте домен в Cloudflare
-2. Включите "Full (strict)" SSL/TLS mode
-3. Настройте origin сертификаты
-
-## 📊 Мониторинг
-
-### Логи
+На вашем локальном компьютере:
 
 ```bash
-# Все сервисы
-docker-compose logs -f
+# Генерируем SSH ключ
+ssh-keygen -t rsa -b 4096 -C "github-actions@webapp"
 
-# Конкретный сервис
-docker-compose logs -f server
+# Копируем публичный ключ на сервер
+ssh-copy-id root@109.248.11.230
+
+# Показываем приватный ключ для добавления в GitHub Secrets
+cat ~/.ssh/id_rsa
 ```
 
-### Метрики
+### 3. Первоначальная настройка сервера
 
-Рекомендуем настроить:
-- Prometheus + Grafana для метрик
-- Sentry для отслеживания ошибок
-- Uptime monitoring (UptimeRobot, Pingdom)
+Подключитесь к серверу и выполните:
 
-## 🔄 Обновление
-
-1. **Бэкап БД:**
 ```bash
-docker-compose exec postgres pg_dump -U postgres tgshop > backup.sql
+# Скачиваем и запускаем скрипт настройки
+curl -fsSL https://raw.githubusercontent.com/Folau1/WebApp/main/scripts/setup-server.sh | bash
 ```
 
-2. **Обновите код:**
+Или вручную:
+
 ```bash
+# Клонируем репозиторий
+git clone https://github.com/Folau1/WebApp.git /root/WebApp
+cd /root/WebApp
+
+# Делаем скрипт исполняемым
+chmod +x scripts/setup-server.sh
+
+# Запускаем настройку
+./scripts/setup-server.sh
+```
+
+### 4. Настройка переменных окружения
+
+Отредактируйте файл `.env` на сервере:
+
+```bash
+nano /root/WebApp/.env
+```
+
+Пример конфигурации:
+
+```env
+# Database
+DATABASE_URL="file:./dev.db"
+
+# Server
+PORT=3000
+NODE_ENV=production
+
+# Admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=your_secure_password
+
+# Telegram Bot (опционально)
+BOT_TOKEN=your_bot_token
+WEBAPP_URL=https://109.248.11.230
+ADMIN_CHAT_ID=your_chat_id
+
+# YooKassa (опционально)
+YK_SHOP_ID=your_shop_id
+YK_SECRET_KEY=your_secret_key
+```
+
+### 5. Запуск приложения
+
+После настройки приложение будет доступно по адресам:
+
+- **WebApp**: http://109.248.11.230
+- **Admin Panel**: http://109.248.11.230/admin
+- **API**: http://109.248.11.230/api
+
+### 6. Управление приложением
+
+```bash
+# Статус приложения
+pm2 status
+
+# Логи приложения
+pm2 logs webapp-server
+
+# Перезапуск приложения
+pm2 restart webapp-server
+
+# Остановка приложения
+pm2 stop webapp-server
+
+# Статус Docker сервисов
+docker-compose -f docker-compose.dev.yml ps
+
+# Логи Docker сервисов
+docker-compose -f docker-compose.dev.yml logs
+```
+
+### 7. Автоматическое развертывание
+
+После настройки GitHub Actions, каждое изменение в ветке `main` будет автоматически развертываться на сервер:
+
+1. Push в репозиторий
+2. GitHub Actions запускает workflow
+3. Код собирается и тестируется
+4. Приложение развертывается на сервер
+5. Проверяется работоспособность
+
+### 8. Мониторинг
+
+Для мониторинга состояния приложения:
+
+```bash
+# Системные ресурсы
+htop
+
+# Статус сервисов
+systemctl status nginx
+pm2 status
+docker-compose -f docker-compose.dev.yml ps
+
+# Логи
+journalctl -u nginx -f
+pm2 logs webapp-server -f
+docker-compose -f docker-compose.dev.yml logs -f
+```
+
+### 9. Обновление приложения
+
+Приложение обновляется автоматически при каждом push в `main`. Для ручного обновления:
+
+```bash
+cd /root/WebApp
 git pull origin main
+npm ci
+npm run build
+pm2 restart webapp-server
 ```
 
-3. **Пересоберите и запустите:**
+### 10. Резервное копирование
+
 ```bash
-docker-compose build
-docker-compose up -d
+# Создание бэкапа базы данных
+cp /root/WebApp/server/prisma/dev.db /root/backup/dev-$(date +%Y%m%d).db
+
+# Создание бэкапа загруженных файлов
+tar -czf /root/backup/uploads-$(date +%Y%m%d).tar.gz /root/WebApp/uploads/
 ```
 
-4. **Примените миграции:**
+## Troubleshooting
+
+### Проблемы с SSH
+
 ```bash
-docker-compose exec server npx prisma migrate deploy
+# Проверка SSH подключения
+ssh -v root@109.248.11.230
+
+# Проверка SSH ключей
+ssh-add -l
 ```
 
-## 🚨 Troubleshooting
+### Проблемы с Docker
 
-### Проблемы с памятью
-
-Добавьте swap:
 ```bash
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
+# Перезапуск Docker
+systemctl restart docker
+
+# Очистка Docker
+docker system prune -a
 ```
 
-### Проблемы с портами
+### Проблемы с Nginx
 
-Проверьте занятые порты:
 ```bash
-sudo netstat -tulpn | grep LISTEN
+# Проверка конфигурации
+nginx -t
+
+# Перезапуск Nginx
+systemctl restart nginx
+
+# Логи Nginx
+tail -f /var/log/nginx/error.log
 ```
-
-### Проблемы с SSL
-
-Проверьте сертификаты:
-```bash
-sudo certbot certificates
-```
-
-### Проблемы с БД
-
-Подключитесь к БД:
-```bash
-docker-compose exec postgres psql -U postgres -d tgshop
-```
-
-## 📝 Чеклист production
-
-- [ ] Все sensitive данные в переменных окружения
-- [ ] HTTPS настроен для всех доменов
-- [ ] Бэкапы БД настроены
-- [ ] Логирование настроено
-- [ ] Мониторинг настроен
-- [ ] Rate limiting включен
-- [ ] CORS правильно настроен
-- [ ] Файрвол настроен
-- [ ] Автообновление сертификатов
-- [ ] YooKassa webhook проверен
-
-
-
-
-
-
