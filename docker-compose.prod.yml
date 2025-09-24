@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: webapp
+      POSTGRES_USER: webapp
+      POSTGRES_PASSWORD: webapp123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+
+  # WebApp Server
+  webapp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://webapp:webapp123@postgres:5432/webapp
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: webapp-media
+      JWT_SECRET: your-jwt-secret-here
+      BOT_TOKEN: 7650352879:AAF752cmQUgnv30F6yCDR_zf6KiFPHLJMR0
+      WEBAPP_URL: http://109.248.11.230
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - minio
+    restart: unless-stopped
+    volumes:
+      - ./server/prisma:/app/server/prisma
+
+  # WebApp Frontend
+  webapp-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+  # WebApp Admin
+  webapp-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    ports:
+      - "5174:80"
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - webapp-server
+      - webapp-frontend
+      - webapp-admin
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:

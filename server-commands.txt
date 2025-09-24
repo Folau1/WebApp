@@ -1,0 +1,19 @@
+# Команды для выполнения на сервере:
+
+# 1. Перейти в директорию проекта
+cd /root/WebApp
+
+# 2. Получить последние изменения
+git pull origin main
+
+# 3. Запустить скрипт исправления
+chmod +x scripts/fix-all-ts-errors.sh
+./scripts/fix-all-ts-errors.sh
+
+# 4. Проверить статус
+pm2 status
+systemctl status nginx
+
+# 5. Проверить доступность
+curl http://localhost:3000/health
+curl http://109.248.11.230
