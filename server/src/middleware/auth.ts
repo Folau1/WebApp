@@ -19,7 +19,7 @@ export interface AuthRequest extends Request {
 // Verify JWT token for admin panel
 export const verifyAdminToken = async (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   try {
@@ -89,7 +89,7 @@ export const verifyTelegramData = (initData: string): boolean => {
 // Middleware to verify Telegram user
 export const verifyTelegramUser = async (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   try {
@@ -127,7 +127,7 @@ export const verifyTelegramUser = async (
 
     req.user = {
       id: user.id,
-      role: user.role
+      role: user.role as 'USER' | 'ADMIN'
     };
 
     next();
@@ -143,7 +143,7 @@ export const verifyTelegramUser = async (
 // Optional Telegram auth - doesn't fail if no data provided
 export const optionalTelegramAuth = async (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   try {
@@ -174,7 +174,7 @@ export const optionalTelegramAuth = async (
 
         req.user = {
           id: user.id,
-          role: user.role
+          role: user.role as 'USER' | 'ADMIN'
         };
       }
     }

@@ -158,6 +158,14 @@ npm run prisma:migrate
 echo "🌱 Заполняем базу тестовыми данными..."
 npm run prisma:seed
 
+# Исправляем TypeScript ошибки
+echo "🔧 Исправляем TypeScript ошибки..."
+sed -i 's/async (req, res, next) => {/async (_req, res, next) => {/g' server/src/routes/admin.ts
+sed -i 's/async (req, res, next) => {/async (_req, res, next) => {/g' server/src/routes/catalog.ts
+sed -i 's/async (req, res, next) => {/async (req, res, next) => {/g' server/src/routes/order.ts
+sed -i 's/async (req, res, next) => {/async (req, res, next) => {/g' server/src/routes/payment.ts
+sed -i 's/data: {/data: {\n        number: 1,/g' server/src/tests/payment.test.ts
+
 # Собираем приложение
 echo "🔨 Собираем приложение..."
 npm run build
