@@ -172,7 +172,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-      </div>
 
       {/* Модальное окно с формой адреса */}
       {showAddressForm && (
