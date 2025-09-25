@@ -4,6 +4,11 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 
+// Import Telegram WebApp stub for development
+if (import.meta.env.DEV) {
+  import('./telegram-dev-stub');
+}
+
 // Initialize Telegram WebApp
 if (window.Telegram?.WebApp) {
   const tg = window.Telegram.WebApp;
