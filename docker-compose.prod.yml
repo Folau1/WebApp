@@ -58,6 +58,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+    environment:
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=main.hookfolau.site
     ports:
       - "5173:5173"
     restart: unless-stopped
@@ -67,6 +69,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.admin
+    environment:
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=main.hookfolau.site
     ports:
       - "5174:5174"
     restart: unless-stopped

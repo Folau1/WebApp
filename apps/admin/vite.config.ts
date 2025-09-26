@@ -6,13 +6,18 @@ export default defineConfig({
   server: {
     port: 5174,
     host: '0.0.0.0',
-    allowedHosts: ['main.hookfolau.site', 'localhost'],
+    allowedHosts: ['main.hookfolau.site', 'localhost', '127.0.0.1'],
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true
       }
     }
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5174,
+    allowedHosts: ['main.hookfolau.site', 'localhost', '127.0.0.1']
   },
   build: {
     outDir: 'dist',
